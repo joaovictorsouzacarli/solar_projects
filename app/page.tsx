@@ -57,109 +57,8 @@ const distribuidoras = [
   "CELTINS",
 ]
 
-// Dados de exemplo dos projetos (atualizados sem cliente)
-const solarProjects = [
-  {
-    id: 1,
-    name: "Residencial Vila Nova",
-    location: "São Paulo, SP",
-    date: "2024-01-15",
-    moduleQuantity: 20,
-    moduleBrand: "Canadian Solar",
-    moduleModel: "CS3W-400P",
-    inverterQuantity: 1,
-    inverterBrand: "Fronius",
-    inverterModel: "Primo 8.2-1",
-    power: "8.0 kWp",
-    distribuidora: "CPFL Energia",
-    projetista: "Eng. Carlos Santos",
-    files: [
-      { name: "planta-baixa.dwg", size: 2048000, type: "application/dwg", url: "https://example.com/file1.dwg" },
-      { name: "memorial-descritivo.pdf", size: 512000, type: "application/pdf", url: "https://example.com/file2.pdf" },
-    ],
-  },
-  {
-    id: 2,
-    name: "Comercial Tech Center",
-    location: "Rio de Janeiro, RJ",
-    date: "2024-02-20",
-    moduleQuantity: 50,
-    moduleBrand: "Jinko Solar",
-    moduleModel: "JKM540M-7RL3",
-    inverterQuantity: 2,
-    inverterBrand: "SMA",
-    inverterModel: "STP 15000TL-30",
-    power: "27.0 kWp",
-    distribuidora: "Light",
-    projetista: "Eng. Maria Oliveira",
-    files: [
-      { name: "projeto-eletrico.dwg", size: 2048000, type: "application/dwg", url: "https://example.com/file3.dwg" },
-      { name: "relatorio-tecnico.pdf", size: 512000, type: "application/pdf", url: "https://example.com/file4.pdf" },
-    ],
-  },
-  {
-    id: 3,
-    name: "Residencial Jardim América",
-    location: "Belo Horizonte, MG",
-    date: "2024-03-10",
-    moduleQuantity: 15,
-    moduleBrand: "Canadian Solar",
-    moduleModel: "CS3W-400P",
-    inverterQuantity: 12,
-    inverterBrand: "Enphase",
-    inverterModel: "IQ7+",
-    power: "6.0 kWp",
-    distribuidora: "Cemig",
-    projetista: "Eng. Pedro Lima",
-    files: [
-      { name: "diagrama-unifilar.dwg", size: 2048000, type: "application/dwg", url: "https://example.com/file5.dwg" },
-      { name: "analise-viabilidade.pdf", size: 512000, type: "application/pdf", url: "https://example.com/file6.pdf" },
-    ],
-  },
-  {
-    id: 4,
-    name: "Industrial Metalúrgica",
-    location: "Campinas, SP",
-    date: "2024-01-30",
-    moduleQuantity: 100,
-    moduleBrand: "Trina Solar",
-    moduleModel: "TSM-DE09.08",
-    inverterQuantity: 3,
-    inverterBrand: "Huawei",
-    inverterModel: "SUN2000-50KTL-M0",
-    power: "54.0 kWp",
-    distribuidora: "CPFL Energia",
-    projetista: "Eng. Ana Costa",
-    files: [
-      { name: "layout-modulos.dwg", size: 2048000, type: "application/dwg", url: "https://example.com/file7.dwg" },
-      { name: "laudo-tecnico.pdf", size: 512000, type: "application/pdf", url: "https://example.com/file8.pdf" },
-    ],
-  },
-  {
-    id: 5,
-    name: "Residencial Condomínio Solar",
-    location: "Brasília, DF",
-    date: "2024-02-05",
-    moduleQuantity: 25,
-    moduleBrand: "Jinko Solar",
-    moduleModel: "JKM540M-7RL3",
-    inverterQuantity: 1,
-    inverterBrand: "Fronius",
-    inverterModel: "Symo 12.5-3-M",
-    power: "13.5 kWp",
-    distribuidora: "CEB",
-    projetista: "Eng. Roberto Silva",
-    files: [
-      { name: "conexao-rede.dwg", size: 2048000, type: "application/dwg", url: "https://example.com/file9.dwg" },
-      {
-        name: "simulacao-energetica.pdf",
-        size: 512000,
-        type: "application/pdf",
-        url: "https://example.com/file10.pdf",
-      },
-    ],
-  },
-]
+// Dados dos projetos - começando vazio
+const solarProjects = []
 
 export default function SolarProjectSystem() {
   const [filters, setFilters] = useState({
@@ -420,11 +319,31 @@ export default function SolarProjectSystem() {
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-2">Projetos Encontrados ({filteredProjects.length})</h2>
               <p className="text-gray-600">
-                {filteredProjects.length === 0
-                  ? "Nenhum projeto encontrado com os filtros aplicados."
-                  : "Clique em um projeto para ver os detalhes completos."}
+                {solarProjects.length === 0
+                  ? "Nenhum projeto cadastrado ainda. Clique em 'Cadastrar Projeto' para adicionar o primeiro!"
+                  : filteredProjects.length === 0
+                    ? "Nenhum projeto encontrado com os filtros aplicados."
+                    : "Clique em um projeto para ver os detalhes completos."}
               </p>
             </div>
+
+            {solarProjects.length === 0 && (
+              <div className="text-center py-12">
+                <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Plus className="h-12 w-12 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum projeto cadastrado</h3>
+                <p className="text-gray-600 mb-6">
+                  Comece cadastrando seu primeiro projeto solar para usar o sistema de busca.
+                </p>
+                <Link href="/cadastro">
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Cadastrar Primeiro Projeto
+                  </Button>
+                </Link>
+              </div>
+            )}
 
             <div className="grid gap-6">
               {filteredProjects.map((project) => (
