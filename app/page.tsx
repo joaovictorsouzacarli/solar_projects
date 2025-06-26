@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Search, Filter, Eye, Download, Calendar, MapPin, Zap, Plus } from "lucide-react"
+import { Search, Filter, Eye, Download, Calendar, MapPin, Zap, Plus, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
+import type { SolarProject } from "@/lib/supabase"
 
 // Lista das principais distribuidoras de energia elétrica do Brasil
 const distribuidoras = [
@@ -58,7 +60,9 @@ const distribuidoras = [
 ]
 
 export default function SolarProjectSystem() {
-  const [solarProjects, setSolarProjects] = useState([])
+  const { toast } = useToast()
+  const [solarProjects, setSolarProjects] = useState<SolarProject[]>([])
+  const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
     moduleQuantity: "",
     moduleBrand: "",
@@ -70,19 +74,39 @@ export default function SolarProjectSystem() {
     searchTerm: "",
   })
 
-  const [selectedProject, setSelectedProject] = useState(null)
+  const [selectedProject, setSelectedProject] = useState<SolarProject | null>(null)
 
-  // Carregar projetos do localStorage
-  useEffect(() => {
-    const savedProjects = localStorage.getItem("solarProjects")
-    if (savedProjects) {
-      setSolarProjects(JSON.parse(savedProjects))
+  // Carregar projetos do banco de dados
+  const loadProjects = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/projects")
+
+      if (!response.ok) {
+        throw new Error("Erro ao carregar projetos")
+      }
+
+      const projects = await response.json()
+      setSolarProjects(projects)
+    } catch (error) {
+      console.error("Erro ao carregar projetos:", error)
+      toast({
+        title: "Erro ao carregar projetos",
+        description: "Não foi possível carregar os projetos do banco de dados.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    loadProjects()
   }, [])
 
   // Extrair opções únicas para os selects
-  const uniqueModuleModels = [...new Set(solarProjects.map((p) => p.moduleModel))]
-  const uniqueInverterModels = [...new Set(solarProjects.map((p) => p.inverterModel))]
+  const uniqueModuleModels = [...new Set(solarProjects.map((p) => p.module_model))]
+  const uniqueInverterModels = [...new Set(solarProjects.map((p) => p.inverter_model))]
 
   // Filtrar projetos
   const filteredProjects = useMemo(() => {
@@ -94,20 +118,20 @@ export default function SolarProjectSystem() {
         project.projetista.toLowerCase().includes(filters.searchTerm.toLowerCase())
 
       const matchesModuleQuantity =
-        !filters.moduleQuantity || project.moduleQuantity.toString() === filters.moduleQuantity
+        !filters.moduleQuantity || project.module_quantity.toString() === filters.moduleQuantity
 
       const matchesModuleBrand =
-        !filters.moduleBrand || project.moduleBrand.toLowerCase().includes(filters.moduleBrand.toLowerCase())
+        !filters.moduleBrand || project.module_brand.toLowerCase().includes(filters.moduleBrand.toLowerCase())
 
-      const matchesModuleModel = !filters.moduleModel || project.moduleModel === filters.moduleModel
+      const matchesModuleModel = !filters.moduleModel || project.module_model === filters.moduleModel
 
       const matchesInverterQuantity =
-        !filters.inverterQuantity || project.inverterQuantity.toString() === filters.inverterQuantity
+        !filters.inverterQuantity || project.inverter_quantity.toString() === filters.inverterQuantity
 
       const matchesInverterBrand =
-        !filters.inverterBrand || project.inverterBrand.toLowerCase().includes(filters.inverterBrand.toLowerCase())
+        !filters.inverterBrand || project.inverter_brand.toLowerCase().includes(filters.inverterBrand.toLowerCase())
 
-      const matchesInverterModel = !filters.inverterModel || project.inverterModel === filters.inverterModel
+      const matchesInverterModel = !filters.inverterModel || project.inverter_model === filters.inverterModel
 
       const matchesDistribuidora = !filters.distribuidora || project.distribuidora === filters.distribuidora
 
@@ -137,6 +161,17 @@ export default function SolarProjectSystem() {
     })
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Carregando projetos do banco de dados...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -156,12 +191,18 @@ export default function SolarProjectSystem() {
                 <p className="text-sm text-gray-600">Busca inteligente de projetos solares</p>
               </div>
             </div>
-            <Link href="/cadastro">
-              <Button className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Cadastrar Projeto
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={loadProjects}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
               </Button>
-            </Link>
+              <Link href="/cadastro">
+                <Button className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Cadastrar Projeto
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -365,7 +406,7 @@ export default function SolarProjectSystem() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {new Date(project.createdAt).toLocaleDateString("pt-BR")}
+                            {new Date(project.created_at).toLocaleDateString("pt-BR")}
                           </span>
                           <span className="flex items-center gap-1">
                             <Zap className="h-4 w-4" />
@@ -380,19 +421,19 @@ export default function SolarProjectSystem() {
                       <div className="space-y-2">
                         <h4 className="font-semibold text-sm text-blue-900">MÓDULOS</h4>
                         <p className="text-sm">
-                          <strong>Quantidade:</strong> {project.moduleQuantity} unidades
+                          <strong>Quantidade:</strong> {project.module_quantity} unidades
                         </p>
                         <p className="text-sm">
-                          <strong>Marca/Modelo:</strong> {project.moduleBrand} {project.moduleModel}
+                          <strong>Marca/Modelo:</strong> {project.module_brand} {project.module_model}
                         </p>
                       </div>
                       <div className="space-y-2">
                         <h4 className="font-semibold text-sm text-blue-900">INVERSORES</h4>
                         <p className="text-sm">
-                          <strong>Quantidade:</strong> {project.inverterQuantity} unidades
+                          <strong>Quantidade:</strong> {project.inverter_quantity} unidades
                         </p>
                         <p className="text-sm">
-                          <strong>Marca/Modelo:</strong> {project.inverterBrand} {project.inverterModel}
+                          <strong>Marca/Modelo:</strong> {project.inverter_brand} {project.inverter_model}
                         </p>
                       </div>
                     </div>
@@ -431,7 +472,7 @@ export default function SolarProjectSystem() {
                                     </p>
                                     <p>
                                       <strong>Data:</strong>{" "}
-                                      {new Date(selectedProject.createdAt).toLocaleDateString("pt-BR")}
+                                      {new Date(selectedProject.created_at).toLocaleDateString("pt-BR")}
                                     </p>
                                     <p>
                                       <strong>Distribuidora:</strong> {selectedProject.distribuidora}
@@ -456,13 +497,13 @@ export default function SolarProjectSystem() {
                                   <h4 className="font-semibold mb-2">Módulos Fotovoltaicos</h4>
                                   <div className="space-y-1 text-sm">
                                     <p>
-                                      <strong>Quantidade:</strong> {selectedProject.moduleQuantity} unidades
+                                      <strong>Quantidade:</strong> {selectedProject.module_quantity} unidades
                                     </p>
                                     <p>
-                                      <strong>Marca:</strong> {selectedProject.moduleBrand}
+                                      <strong>Marca:</strong> {selectedProject.module_brand}
                                     </p>
                                     <p>
-                                      <strong>Modelo:</strong> {selectedProject.moduleModel}
+                                      <strong>Modelo:</strong> {selectedProject.module_model}
                                     </p>
                                   </div>
                                 </div>
@@ -470,13 +511,13 @@ export default function SolarProjectSystem() {
                                   <h4 className="font-semibold mb-2">Inversores</h4>
                                   <div className="space-y-1 text-sm">
                                     <p>
-                                      <strong>Quantidade:</strong> {selectedProject.inverterQuantity} unidades
+                                      <strong>Quantidade:</strong> {selectedProject.inverter_quantity} unidades
                                     </p>
                                     <p>
-                                      <strong>Marca:</strong> {selectedProject.inverterBrand}
+                                      <strong>Marca:</strong> {selectedProject.inverter_brand}
                                     </p>
                                     <p>
-                                      <strong>Modelo:</strong> {selectedProject.inverterModel}
+                                      <strong>Modelo:</strong> {selectedProject.inverter_model}
                                     </p>
                                   </div>
                                 </div>

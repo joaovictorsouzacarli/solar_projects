@@ -298,20 +298,28 @@ export default function CadastrarProjeto() {
       const projectData = {
         ...formData,
         files: uploadedFiles.filter((f) => !f.uploading),
-        createdAt: new Date().toISOString(),
-        id: Date.now(), // ID temporário
       }
 
-      // TEMPORÁRIO: Salvar no localStorage até implementarmos banco de dados
-      const existingProjects = JSON.parse(localStorage.getItem("solarProjects") || "[]")
-      const updatedProjects = [...existingProjects, projectData]
-      localStorage.setItem("solarProjects", JSON.stringify(updatedProjects))
+      // Salvar no banco de dados via API
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(projectData),
+      })
 
-      console.log("Projeto cadastrado:", projectData)
+      if (!response.ok) {
+        throw new Error("Erro ao salvar projeto")
+      }
+
+      const savedProject = await response.json()
+
+      console.log("Projeto salvo no banco:", savedProject)
 
       toast({
         title: "Projeto cadastrado com sucesso!",
-        description: `Projeto "${formData.name}" foi salvo com ${uploadedFiles.length} arquivo(s) anexado(s).`,
+        description: `Projeto "${formData.name}" foi salvo no banco de dados com ${uploadedFiles.length} arquivo(s).`,
       })
 
       // Aguardar um pouco para mostrar o toast antes de limpar
@@ -341,7 +349,7 @@ export default function CadastrarProjeto() {
       console.error("Erro ao salvar projeto:", error)
       toast({
         title: "Erro ao salvar projeto",
-        description: "Não foi possível salvar o projeto. Tente novamente.",
+        description: "Não foi possível salvar o projeto no banco de dados. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -629,7 +637,7 @@ export default function CadastrarProjeto() {
               </Link>
               <Button type="submit" className="bg-yellow-500 hover:bg-yellow-600" disabled={isSubmitting}>
                 <Save className="h-4 w-4 mr-2" />
-                {isSubmitting ? "Salvando..." : "Salvar Projeto"}
+                {isSubmitting ? "Salvando no banco..." : "Salvar Projeto"}
               </Button>
             </div>
           </form>
