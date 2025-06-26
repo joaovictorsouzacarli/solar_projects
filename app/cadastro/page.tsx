@@ -52,6 +52,20 @@ const distribuidoras = [
   "CELTINS",
 ]
 
+interface FormData {
+  name: string
+  location: string
+  distribuidora: string
+  projetista: string
+  moduleQuantity: string
+  moduleBrand: string
+  moduleModel: string
+  inverterQuantity: string
+  inverterBrand: string
+  inverterModel: string
+  power: string
+}
+
 interface UploadedFile {
   name: string
   size: number
@@ -63,7 +77,7 @@ interface UploadedFile {
 
 export default function CadastrarProjeto() {
   const { toast } = useToast()
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     location: "",
     distribuidora: "",
@@ -81,7 +95,7 @@ export default function CadastrarProjeto() {
   const [isDragging, setIsDragging] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -272,7 +286,7 @@ export default function CadastrarProjeto() {
         "inverterModel",
         "power",
       ]
-      const missingFields = requiredFields.filter((field) => !formData[field])
+      const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData])
 
       if (missingFields.length > 0) {
         toast({
