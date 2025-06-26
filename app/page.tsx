@@ -105,8 +105,8 @@ export default function SolarProjectSystem() {
   }, [])
 
   // Extrair opções únicas para os selects
-  const uniqueModuleModels = [...new Set(solarProjects.map((p) => p.module_model))]
-  const uniqueInverterModels = [...new Set(solarProjects.map((p) => p.inverter_model))]
+  const uniqueModuleModels = Array.from(new Set(solarProjects.map((p) => p.module_model)))
+  const uniqueInverterModels = Array.from(new Set(solarProjects.map((p) => p.inverter_model)))
 
   // Filtrar projetos
   const filteredProjects = useMemo(() => {
