@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Search, Filter, Eye, Download, Calendar, MapPin, Zap, Plus } from "lucide-react"
@@ -57,10 +57,8 @@ const distribuidoras = [
   "CELTINS",
 ]
 
-// Dados dos projetos - começando vazio
-const solarProjects = []
-
 export default function SolarProjectSystem() {
+  const [solarProjects, setSolarProjects] = useState([])
   const [filters, setFilters] = useState({
     moduleQuantity: "",
     moduleBrand: "",
@@ -74,7 +72,15 @@ export default function SolarProjectSystem() {
 
   const [selectedProject, setSelectedProject] = useState(null)
 
-  // Extrair opções únicas para os selects (agora só para modelos, já que marcas são livres)
+  // Carregar projetos do localStorage
+  useEffect(() => {
+    const savedProjects = localStorage.getItem("solarProjects")
+    if (savedProjects) {
+      setSolarProjects(JSON.parse(savedProjects))
+    }
+  }, [])
+
+  // Extrair opções únicas para os selects
   const uniqueModuleModels = [...new Set(solarProjects.map((p) => p.moduleModel))]
   const uniqueInverterModels = [...new Set(solarProjects.map((p) => p.inverterModel))]
 
@@ -116,7 +122,7 @@ export default function SolarProjectSystem() {
         matchesDistribuidora
       )
     })
-  }, [filters])
+  }, [filters, solarProjects])
 
   const clearFilters = () => {
     setFilters({
@@ -359,7 +365,7 @@ export default function SolarProjectSystem() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {new Date(project.date).toLocaleDateString("pt-BR")}
+                            {new Date(project.createdAt).toLocaleDateString("pt-BR")}
                           </span>
                           <span className="flex items-center gap-1">
                             <Zap className="h-4 w-4" />
@@ -425,7 +431,7 @@ export default function SolarProjectSystem() {
                                     </p>
                                     <p>
                                       <strong>Data:</strong>{" "}
-                                      {new Date(selectedProject.date).toLocaleDateString("pt-BR")}
+                                      {new Date(selectedProject.createdAt).toLocaleDateString("pt-BR")}
                                     </p>
                                     <p>
                                       <strong>Distribuidora:</strong> {selectedProject.distribuidora}
@@ -495,7 +501,11 @@ export default function SolarProjectSystem() {
                                           </span>
                                           <span className="text-sm">{file.name}</span>
                                         </div>
-                                        <Button size="sm" variant="outline">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => window.open(file.url, "_blank")}
+                                        >
                                           <Download className="h-3 w-3 mr-1" />
                                           Baixar
                                         </Button>

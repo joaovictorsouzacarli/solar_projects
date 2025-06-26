@@ -79,6 +79,7 @@ export default function CadastrarProjeto() {
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -147,17 +148,17 @@ export default function CadastrarProjeto() {
 
     try {
       // Criar FormData para enviar o arquivo
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("upload_preset", "solar_projects") // Vamos criar este preset
-      formData.append("folder", "solar-projects")
+      const formDataUpload = new FormData()
+      formDataUpload.append("file", file)
+      formDataUpload.append("upload_preset", "solar_projects") // Preset do Cloudinary
+      formDataUpload.append("folder", "solar-projects")
 
       // Upload para Cloudinary
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
         {
           method: "POST",
-          body: formData,
+          body: formDataUpload,
         },
       )
 
@@ -199,6 +200,8 @@ export default function CadastrarProjeto() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     files.forEach(uploadToCloudinary)
+    // Limpar o input para permitir selecionar o mesmo arquivo novamente
+    e.target.value = ""
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -252,58 +255,67 @@ export default function CadastrarProjeto() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    // Validação básica
-    const requiredFields = [
-      "name",
-      "location",
-      "distribuidora",
-      "projetista",
-      "moduleQuantity",
-      "moduleBrand",
-      "moduleModel",
-      "inverterQuantity",
-      "inverterBrand",
-      "inverterModel",
-      "power",
-    ]
-    const missingFields = requiredFields.filter((field) => !formData[field])
-
-    if (missingFields.length > 0) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Verificar se ainda há uploads em andamento
-    const uploading = uploadedFiles.some((f) => f.uploading)
-    if (uploading) {
-      toast({
-        title: "Aguarde o upload",
-        description: "Aguarde todos os arquivos terminarem de ser enviados.",
-        variant: "destructive",
-      })
-      return
-    }
+    setIsSubmitting(true)
 
     try {
-      // Salvar projeto no banco de dados
+      // Validação básica
+      const requiredFields = [
+        "name",
+        "location",
+        "distribuidora",
+        "projetista",
+        "moduleQuantity",
+        "moduleBrand",
+        "moduleModel",
+        "inverterQuantity",
+        "inverterBrand",
+        "inverterModel",
+        "power",
+      ]
+      const missingFields = requiredFields.filter((field) => !formData[field])
+
+      if (missingFields.length > 0) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, preencha todos os campos obrigatórios.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Verificar se ainda há uploads em andamento
+      const uploading = uploadedFiles.some((f) => f.uploading)
+      if (uploading) {
+        toast({
+          title: "Aguarde o upload",
+          description: "Aguarde todos os arquivos terminarem de ser enviados.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Criar objeto do projeto
       const projectData = {
         ...formData,
         files: uploadedFiles.filter((f) => !f.uploading),
         createdAt: new Date().toISOString(),
+        id: Date.now(), // ID temporário
       }
 
-      // Aqui você salvaria no banco de dados
+      // TEMPORÁRIO: Salvar no localStorage até implementarmos banco de dados
+      const existingProjects = JSON.parse(localStorage.getItem("solarProjects") || "[]")
+      const updatedProjects = [...existingProjects, projectData]
+      localStorage.setItem("solarProjects", JSON.stringify(updatedProjects))
+
       console.log("Projeto cadastrado:", projectData)
 
       toast({
         title: "Projeto cadastrado com sucesso!",
-        description: `Projeto salvo com ${uploadedFiles.length} arquivo(s) anexado(s).`,
+        description: `Projeto "${formData.name}" foi salvo com ${uploadedFiles.length} arquivo(s) anexado(s).`,
       })
+
+      // Aguardar um pouco para mostrar o toast antes de limpar
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // Limpar formulário
       setFormData({
@@ -320,12 +332,20 @@ export default function CadastrarProjeto() {
         power: "",
       })
       setUploadedFiles([])
+
+      toast({
+        title: "Formulário limpo",
+        description: "Pronto para cadastrar um novo projeto!",
+      })
     } catch (error) {
+      console.error("Erro ao salvar projeto:", error)
       toast({
         title: "Erro ao salvar projeto",
         description: "Não foi possível salvar o projeto. Tente novamente.",
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -543,6 +563,8 @@ export default function CadastrarProjeto() {
                     Arraste arquivos aqui ou clique para selecionar
                   </p>
                   <p className="text-sm text-gray-500 mb-4">Suporta: DWG, PDF, PNG, JPG (máx. 10MB)</p>
+
+                  {/* Input file corrigido */}
                   <input
                     type="file"
                     multiple
@@ -551,11 +573,13 @@ export default function CadastrarProjeto() {
                     className="hidden"
                     id="file-upload"
                   />
-                  <label htmlFor="file-upload">
-                    <Button type="button" variant="outline" className="cursor-pointer">
-                      Selecionar Arquivos
-                    </Button>
-                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("file-upload")?.click()}
+                  >
+                    Selecionar Arquivos
+                  </Button>
                 </div>
 
                 {/* Lista de Arquivos */}
@@ -599,11 +623,13 @@ export default function CadastrarProjeto() {
             {/* Botões de Ação */}
             <div className="flex gap-4 justify-end">
               <Link href="/">
-                <Button variant="outline">Cancelar</Button>
+                <Button variant="outline" disabled={isSubmitting}>
+                  Cancelar
+                </Button>
               </Link>
-              <Button type="submit" className="bg-yellow-500 hover:bg-yellow-600">
+              <Button type="submit" className="bg-yellow-500 hover:bg-yellow-600" disabled={isSubmitting}>
                 <Save className="h-4 w-4 mr-2" />
-                Salvar Projeto
+                {isSubmitting ? "Salvando..." : "Salvar Projeto"}
               </Button>
             </div>
           </form>
