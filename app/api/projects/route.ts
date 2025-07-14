@@ -11,10 +11,10 @@ export async function GET() {
 
     if (error) {
       console.error("Erro ao buscar projetos:", error)
-      return NextResponse.json({ error: "Erro ao buscar projetos" }, { status: 500 })
+      return NextResponse.json({ error: "Erro ao buscar projetos", details: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(projects)
+    return NextResponse.json(projects || [])
   } catch (error) {
     console.error("Erro interno:", error)
     return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 })
@@ -38,6 +38,8 @@ export async function POST(request: NextRequest) {
       inverter_brand: body.inverterBrand,
       inverter_model: body.inverterModel,
       power: body.power,
+      tipo_padrao: body.tipoPadrao,
+      capacidade_disjuntor: Number.parseInt(body.capacidadeDisjuntor),
       files: body.files || [],
     }
 
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Erro ao criar projeto:", error)
-      return NextResponse.json({ error: "Erro ao criar projeto" }, { status: 500 })
+      return NextResponse.json({ error: "Erro ao criar projeto", details: error.message }, { status: 500 })
     }
 
     return NextResponse.json(project, { status: 201 })

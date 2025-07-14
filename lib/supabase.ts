@@ -18,6 +18,8 @@ export type SolarProject = {
   inverter_brand: string
   inverter_model: string
   power: string
+  tipo_padrao: string
+  capacidade_disjuntor: number
   files: Array<{
     name: string
     size: number

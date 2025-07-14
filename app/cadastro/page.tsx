@@ -52,6 +52,8 @@ const distribuidoras = [
   "CELTINS",
 ]
 
+const tiposPadrao = ["Monofásico", "Bifásico", "Trifásico"]
+
 interface FormData {
   name: string
   location: string
@@ -64,6 +66,8 @@ interface FormData {
   inverterBrand: string
   inverterModel: string
   power: string
+  tipoPadrao: string
+  capacidadeDisjuntor: string
 }
 
 interface UploadedFile {
@@ -89,6 +93,8 @@ export default function CadastrarProjeto() {
     inverterBrand: "",
     inverterModel: "",
     power: "",
+    tipoPadrao: "",
+    capacidadeDisjuntor: "",
   })
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
@@ -285,6 +291,8 @@ export default function CadastrarProjeto() {
         "inverterBrand",
         "inverterModel",
         "power",
+        "tipoPadrao",
+        "capacidadeDisjuntor",
       ]
       const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData])
 
@@ -324,7 +332,8 @@ export default function CadastrarProjeto() {
       })
 
       if (!response.ok) {
-        throw new Error("Erro ao salvar projeto")
+        const errorData = await response.json()
+        throw new Error(errorData.details || "Erro ao salvar projeto")
       }
 
       const savedProject = await response.json()
@@ -352,6 +361,8 @@ export default function CadastrarProjeto() {
         inverterBrand: "",
         inverterModel: "",
         power: "",
+        tipoPadrao: "",
+        capacidadeDisjuntor: "",
       })
       setUploadedFiles([])
 
@@ -363,7 +374,10 @@ export default function CadastrarProjeto() {
       console.error("Erro ao salvar projeto:", error)
       toast({
         title: "Erro ao salvar projeto",
-        description: "Não foi possível salvar o projeto no banco de dados. Tente novamente.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível salvar o projeto no banco de dados. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -474,6 +488,48 @@ export default function CadastrarProjeto() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Informações Elétricas */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Informações Elétricas</CardTitle>
+                <CardDescription>Especificações do padrão elétrico</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="tipoPadrao">Tipo de Padrão *</Label>
+                    <Select
+                      value={formData.tipoPadrao}
+                      onValueChange={(value) => handleInputChange("tipoPadrao", value)}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo de padrão" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tiposPadrao.map((tipo) => (
+                          <SelectItem key={tipo} value={tipo}>
+                            {tipo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="capacidadeDisjuntor">Capacidade do Disjuntor (A) *</Label>
+                    <Input
+                      id="capacidadeDisjuntor"
+                      type="number"
+                      placeholder="Ex: 40"
+                      value={formData.capacidadeDisjuntor}
+                      onChange={(e) => handleInputChange("capacidadeDisjuntor", e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

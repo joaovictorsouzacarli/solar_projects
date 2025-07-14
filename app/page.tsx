@@ -59,6 +59,8 @@ const distribuidoras = [
   "CELTINS",
 ]
 
+const tiposPadrao = ["Monofásico", "Bifásico", "Trifásico"]
+
 export default function SolarProjectSystem() {
   const { toast } = useToast()
   const [solarProjects, setSolarProjects] = useState<SolarProject[]>([])
@@ -71,6 +73,8 @@ export default function SolarProjectSystem() {
     inverterBrand: "",
     inverterModel: "",
     distribuidora: "",
+    tipoPadrao: "",
+    capacidadeDisjuntor: "",
     searchTerm: "",
   })
 
@@ -83,7 +87,8 @@ export default function SolarProjectSystem() {
       const response = await fetch("/api/projects")
 
       if (!response.ok) {
-        throw new Error("Erro ao carregar projetos")
+        const errorData = await response.json()
+        throw new Error(errorData.details || "Erro ao carregar projetos")
       }
 
       const projects = await response.json()
@@ -92,7 +97,8 @@ export default function SolarProjectSystem() {
       console.error("Erro ao carregar projetos:", error)
       toast({
         title: "Erro ao carregar projetos",
-        description: "Não foi possível carregar os projetos do banco de dados.",
+        description:
+          error instanceof Error ? error.message : "Não foi possível carregar os projetos do banco de dados.",
         variant: "destructive",
       })
     } finally {
@@ -135,6 +141,11 @@ export default function SolarProjectSystem() {
 
       const matchesDistribuidora = !filters.distribuidora || project.distribuidora === filters.distribuidora
 
+      const matchesTipoPadrao = !filters.tipoPadrao || project.tipo_padrao === filters.tipoPadrao
+
+      const matchesCapacidadeDisjuntor =
+        !filters.capacidadeDisjuntor || project.capacidade_disjuntor.toString() === filters.capacidadeDisjuntor
+
       return (
         matchesSearch &&
         matchesModuleQuantity &&
@@ -143,7 +154,9 @@ export default function SolarProjectSystem() {
         matchesInverterQuantity &&
         matchesInverterBrand &&
         matchesInverterModel &&
-        matchesDistribuidora
+        matchesDistribuidora &&
+        matchesTipoPadrao &&
+        matchesCapacidadeDisjuntor
       )
     })
   }, [filters, solarProjects])
@@ -157,6 +170,8 @@ export default function SolarProjectSystem() {
       inverterBrand: "",
       inverterModel: "",
       distribuidora: "",
+      tipoPadrao: "",
+      capacidadeDisjuntor: "",
       searchTerm: "",
     })
   }
@@ -260,6 +275,44 @@ export default function SolarProjectSystem() {
 
                 <Separator />
 
+                {/* Filtros Elétricos */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-blue-900">INFORMAÇÕES ELÉTRICAS</h4>
+
+                  <div>
+                    <Label htmlFor="tipoPadrao">Tipo de Padrão</Label>
+                    <Select
+                      value={filters.tipoPadrao}
+                      onValueChange={(value) => setFilters({ ...filters, tipoPadrao: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os tipos</SelectItem>
+                        {tiposPadrao.map((tipo) => (
+                          <SelectItem key={tipo} value={tipo}>
+                            {tipo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="capacidadeDisjuntor">Capacidade Disjuntor (A)</Label>
+                    <Input
+                      id="capacidadeDisjuntor"
+                      type="number"
+                      placeholder="Ex: 40"
+                      value={filters.capacidadeDisjuntor}
+                      onChange={(e) => setFilters({ ...filters, capacidadeDisjuntor: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
                 {/* Filtros de Módulos */}
                 <div className="space-y-3">
                   <h4 className="font-semibold text-sm text-blue-900">MÓDULOS FOTOVOLTAICOS</h4>
@@ -354,7 +407,7 @@ export default function SolarProjectSystem() {
                   </div>
                 </div>
 
-                <Button onClick={clearFilters} variant="outline" className="w-full">
+                <Button onClick={clearFilters} variant="outline" className="w-full bg-transparent">
                   Limpar Filtros
                 </Button>
               </CardContent>
@@ -417,7 +470,16 @@ export default function SolarProjectSystem() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid md:grid-cols-3 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-sm text-blue-900">ELÉTRICO</h4>
+                        <p className="text-sm">
+                          <strong>Padrão:</strong> {project.tipo_padrao}
+                        </p>
+                        <p className="text-sm">
+                          <strong>Disjuntor:</strong> {project.capacidade_disjuntor}A
+                        </p>
+                      </div>
                       <div className="space-y-2">
                         <h4 className="font-semibold text-sm text-blue-900">MÓDULOS</h4>
                         <p className="text-sm">
@@ -483,10 +545,16 @@ export default function SolarProjectSystem() {
                                   </div>
                                 </div>
                                 <div>
-                                  <h4 className="font-semibold mb-2">Especificações Técnicas</h4>
+                                  <h4 className="font-semibold mb-2">Especificações Elétricas</h4>
                                   <div className="space-y-1 text-sm">
                                     <p>
                                       <strong>Potência Total:</strong> {selectedProject.power}
+                                    </p>
+                                    <p>
+                                      <strong>Tipo de Padrão:</strong> {selectedProject.tipo_padrao}
+                                    </p>
+                                    <p>
+                                      <strong>Capacidade Disjuntor:</strong> {selectedProject.capacidade_disjuntor}A
                                     </p>
                                   </div>
                                 </div>
@@ -563,7 +631,7 @@ export default function SolarProjectSystem() {
                                   <Download className="h-4 w-4 mr-2" />
                                   Baixar Projeto
                                 </Button>
-                                <Button variant="outline" className="flex-1">
+                                <Button variant="outline" className="flex-1 bg-transparent">
                                   Usar como Base
                                 </Button>
                               </div>
