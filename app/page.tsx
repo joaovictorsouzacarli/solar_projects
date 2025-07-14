@@ -187,15 +187,15 @@ export default function SolarProjectSystem() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Image
-                src="/images/connect-logo.png"
-                alt="Connect Energia Solar"
+                src="/images/logo.jpg"
+                alt="SC Soluções Energéticas"
                 width={120}
                 height={60}
                 className="h-12 w-auto"
               />
               <div>
-                <h1 className="text-2xl font-bold text-blue-900">Sistema de Projetos</h1>
-                <p className="text-sm text-gray-600">Busca inteligente de projetos solares</p>
+                <h1 className="text-2xl font-bold text-blue-900">SC Soluções Energéticas</h1>
+                <p className="text-sm text-gray-600">Sistema de Projetos Solares</p>
               </div>
             </div>
             <div className="flex gap-2">

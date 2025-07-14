@@ -421,14 +421,14 @@ export default function CadastrarProjeto() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Image
-                src="/images/connect-logo.png"
-                alt="Connect Energia Solar"
+                src="/images/logo.jpg"
+                alt="SC Soluções Energéticas"
                 width={120}
                 height={60}
                 className="h-12 w-auto"
               />
               <div>
-                <h1 className="text-2xl font-bold text-blue-900">Cadastrar Projeto</h1>
+                <h1 className="text-2xl font-bold text-blue-900">Cadastro de Projetos</h1>
                 <p className="text-sm text-gray-600">Adicione um novo projeto ao sistema</p>
               </div>
             </div>
