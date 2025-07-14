@@ -30,16 +30,11 @@ export async function POST(request: NextRequest) {
       name: body.name,
       location: body.location,
       distribuidora: body.distribuidora,
-      projetista: body.projetista,
-      module_quantity: Number.parseInt(body.moduleQuantity),
-      module_brand: body.moduleBrand,
-      module_model: body.moduleModel,
-      inverter_quantity: Number.parseInt(body.inverterQuantity),
-      inverter_brand: body.inverterBrand,
-      inverter_model: body.inverterModel,
       power: body.power,
       tipo_padrao: body.tipoPadrao,
       capacidade_disjuntor: Number.parseInt(body.capacidadeDisjuntor),
+      modules: body.modules || [],
+      inverters: body.inverters || [],
       files: body.files || [],
     }
 

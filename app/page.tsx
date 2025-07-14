@@ -66,10 +66,8 @@ export default function SolarProjectSystem() {
   const [solarProjects, setSolarProjects] = useState<SolarProject[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
-    moduleQuantity: "",
     moduleBrand: "",
     moduleModel: "",
-    inverterQuantity: "",
     inverterBrand: "",
     inverterModel: "",
     distribuidora: "",
@@ -111,8 +109,10 @@ export default function SolarProjectSystem() {
   }, [])
 
   // Extrair opções únicas para os selects
-  const uniqueModuleModels = Array.from(new Set(solarProjects.map((p) => p.module_model)))
-  const uniqueInverterModels = Array.from(new Set(solarProjects.map((p) => p.inverter_model)))
+  const uniqueModuleBrands = Array.from(new Set(solarProjects.flatMap((p) => p.modules?.map((m) => m.brand) || [])))
+  const uniqueModuleModels = Array.from(new Set(solarProjects.flatMap((p) => p.modules?.map((m) => m.model) || [])))
+  const uniqueInverterBrands = Array.from(new Set(solarProjects.flatMap((p) => p.inverters?.map((i) => i.brand) || [])))
+  const uniqueInverterModels = Array.from(new Set(solarProjects.flatMap((p) => p.inverters?.map((i) => i.model) || [])))
 
   // Filtrar projetos
   const filteredProjects = useMemo(() => {
@@ -120,24 +120,20 @@ export default function SolarProjectSystem() {
       const matchesSearch =
         !filters.searchTerm ||
         project.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        project.location.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        project.projetista.toLowerCase().includes(filters.searchTerm.toLowerCase())
-
-      const matchesModuleQuantity =
-        !filters.moduleQuantity || project.module_quantity.toString() === filters.moduleQuantity
+        project.location.toLowerCase().includes(filters.searchTerm.toLowerCase())
 
       const matchesModuleBrand =
-        !filters.moduleBrand || project.module_brand.toLowerCase().includes(filters.moduleBrand.toLowerCase())
+        !filters.moduleBrand ||
+        project.modules?.some((m) => m.brand.toLowerCase().includes(filters.moduleBrand.toLowerCase()))
 
-      const matchesModuleModel = !filters.moduleModel || project.module_model === filters.moduleModel
-
-      const matchesInverterQuantity =
-        !filters.inverterQuantity || project.inverter_quantity.toString() === filters.inverterQuantity
+      const matchesModuleModel = !filters.moduleModel || project.modules?.some((m) => m.model === filters.moduleModel)
 
       const matchesInverterBrand =
-        !filters.inverterBrand || project.inverter_brand.toLowerCase().includes(filters.inverterBrand.toLowerCase())
+        !filters.inverterBrand ||
+        project.inverters?.some((i) => i.brand.toLowerCase().includes(filters.inverterBrand.toLowerCase()))
 
-      const matchesInverterModel = !filters.inverterModel || project.inverter_model === filters.inverterModel
+      const matchesInverterModel =
+        !filters.inverterModel || project.inverters?.some((i) => i.model === filters.inverterModel)
 
       const matchesDistribuidora = !filters.distribuidora || project.distribuidora === filters.distribuidora
 
@@ -148,10 +144,8 @@ export default function SolarProjectSystem() {
 
       return (
         matchesSearch &&
-        matchesModuleQuantity &&
         matchesModuleBrand &&
         matchesModuleModel &&
-        matchesInverterQuantity &&
         matchesInverterBrand &&
         matchesInverterModel &&
         matchesDistribuidora &&
@@ -163,10 +157,8 @@ export default function SolarProjectSystem() {
 
   const clearFilters = () => {
     setFilters({
-      moduleQuantity: "",
       moduleBrand: "",
       moduleModel: "",
-      inverterQuantity: "",
       inverterBrand: "",
       inverterModel: "",
       distribuidora: "",
@@ -242,7 +234,7 @@ export default function SolarProjectSystem() {
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="search"
-                      placeholder="Nome, local, projetista..."
+                      placeholder="Nome, local..."
                       className="pl-10"
                       value={filters.searchTerm}
                       onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
@@ -318,24 +310,23 @@ export default function SolarProjectSystem() {
                   <h4 className="font-semibold text-sm text-blue-900">MÓDULOS FOTOVOLTAICOS</h4>
 
                   <div>
-                    <Label htmlFor="moduleQuantity">Quantidade de Módulos</Label>
-                    <Input
-                      id="moduleQuantity"
-                      type="number"
-                      placeholder="Ex: 20"
-                      value={filters.moduleQuantity}
-                      onChange={(e) => setFilters({ ...filters, moduleQuantity: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
                     <Label htmlFor="moduleBrand">Marca dos Módulos</Label>
-                    <Input
-                      id="moduleBrand"
-                      placeholder="Ex: Canadian Solar"
+                    <Select
                       value={filters.moduleBrand}
-                      onChange={(e) => setFilters({ ...filters, moduleBrand: e.target.value })}
-                    />
+                      onValueChange={(value) => setFilters({ ...filters, moduleBrand: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a marca" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as marcas</SelectItem>
+                        {uniqueModuleBrands.map((brand) => (
+                          <SelectItem key={brand} value={brand}>
+                            {brand}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>
@@ -366,24 +357,23 @@ export default function SolarProjectSystem() {
                   <h4 className="font-semibold text-sm text-blue-900">INVERSORES</h4>
 
                   <div>
-                    <Label htmlFor="inverterQuantity">Quantidade de Inversores</Label>
-                    <Input
-                      id="inverterQuantity"
-                      type="number"
-                      placeholder="Ex: 1"
-                      value={filters.inverterQuantity}
-                      onChange={(e) => setFilters({ ...filters, inverterQuantity: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
                     <Label htmlFor="inverterBrand">Marca dos Inversores</Label>
-                    <Input
-                      id="inverterBrand"
-                      placeholder="Ex: Fronius"
+                    <Select
                       value={filters.inverterBrand}
-                      onChange={(e) => setFilters({ ...filters, inverterBrand: e.target.value })}
-                    />
+                      onValueChange={(value) => setFilters({ ...filters, inverterBrand: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a marca" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as marcas</SelectItem>
+                        {uniqueInverterBrands.map((brand) => (
+                          <SelectItem key={brand} value={brand}>
+                            {brand}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>
@@ -483,19 +473,21 @@ export default function SolarProjectSystem() {
                       <div className="space-y-2">
                         <h4 className="font-semibold text-sm text-blue-900">MÓDULOS</h4>
                         <p className="text-sm">
-                          <strong>Quantidade:</strong> {project.module_quantity} unidades
+                          <strong>Tipos:</strong> {project.modules?.length || 0}
                         </p>
                         <p className="text-sm">
-                          <strong>Marca/Modelo:</strong> {project.module_brand} {project.module_model}
+                          <strong>Total:</strong> {project.modules?.reduce((sum, m) => sum + m.quantity, 0) || 0}{" "}
+                          unidades
                         </p>
                       </div>
                       <div className="space-y-2">
                         <h4 className="font-semibold text-sm text-blue-900">INVERSORES</h4>
                         <p className="text-sm">
-                          <strong>Quantidade:</strong> {project.inverter_quantity} unidades
+                          <strong>Tipos:</strong> {project.inverters?.length || 0}
                         </p>
                         <p className="text-sm">
-                          <strong>Marca/Modelo:</strong> {project.inverter_brand} {project.inverter_model}
+                          <strong>Total:</strong> {project.inverters?.reduce((sum, i) => sum + i.quantity, 0) || 0}{" "}
+                          unidades
                         </p>
                       </div>
                     </div>
@@ -504,9 +496,6 @@ export default function SolarProjectSystem() {
                       <div className="flex gap-4 text-sm text-gray-600">
                         <span>
                           <strong>Potência:</strong> {project.power}
-                        </span>
-                        <span>
-                          <strong>Projetista:</strong> {project.projetista}
                         </span>
                       </div>
 
@@ -517,7 +506,7 @@ export default function SolarProjectSystem() {
                             Ver Detalhes
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>{project.name}</DialogTitle>
                             <DialogDescription>Detalhes completos do projeto solar</DialogDescription>
@@ -538,9 +527,6 @@ export default function SolarProjectSystem() {
                                     </p>
                                     <p>
                                       <strong>Distribuidora:</strong> {selectedProject.distribuidora}
-                                    </p>
-                                    <p>
-                                      <strong>Projetista:</strong> {selectedProject.projetista}
                                     </p>
                                   </div>
                                 </div>
@@ -563,30 +549,32 @@ export default function SolarProjectSystem() {
                               <div className="grid md:grid-cols-2 gap-4">
                                 <div>
                                   <h4 className="font-semibold mb-2">Módulos Fotovoltaicos</h4>
-                                  <div className="space-y-1 text-sm">
-                                    <p>
-                                      <strong>Quantidade:</strong> {selectedProject.module_quantity} unidades
-                                    </p>
-                                    <p>
-                                      <strong>Marca:</strong> {selectedProject.module_brand}
-                                    </p>
-                                    <p>
-                                      <strong>Modelo:</strong> {selectedProject.module_model}
-                                    </p>
+                                  <div className="space-y-2">
+                                    {selectedProject.modules?.map((module, index) => (
+                                      <div key={index} className="p-2 bg-gray-50 rounded text-sm">
+                                        <p>
+                                          <strong>Tipo {index + 1}:</strong>
+                                        </p>
+                                        <p>• Quantidade: {module.quantity} unidades</p>
+                                        <p>• Marca: {module.brand}</p>
+                                        <p>• Modelo: {module.model}</p>
+                                      </div>
+                                    )) || <p className="text-sm text-gray-500">Nenhum módulo cadastrado</p>}
                                   </div>
                                 </div>
                                 <div>
                                   <h4 className="font-semibold mb-2">Inversores</h4>
-                                  <div className="space-y-1 text-sm">
-                                    <p>
-                                      <strong>Quantidade:</strong> {selectedProject.inverter_quantity} unidades
-                                    </p>
-                                    <p>
-                                      <strong>Marca:</strong> {selectedProject.inverter_brand}
-                                    </p>
-                                    <p>
-                                      <strong>Modelo:</strong> {selectedProject.inverter_model}
-                                    </p>
+                                  <div className="space-y-2">
+                                    {selectedProject.inverters?.map((inverter, index) => (
+                                      <div key={index} className="p-2 bg-gray-50 rounded text-sm">
+                                        <p>
+                                          <strong>Tipo {index + 1}:</strong>
+                                        </p>
+                                        <p>• Quantidade: {inverter.quantity} unidades</p>
+                                        <p>• Marca: {inverter.brand}</p>
+                                        <p>• Modelo: {inverter.model}</p>
+                                      </div>
+                                    )) || <p className="text-sm text-gray-500">Nenhum inversor cadastrado</p>}
                                   </div>
                                 </div>
                               </div>

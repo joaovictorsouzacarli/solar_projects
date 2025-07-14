@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft, Save, Upload, X } from "lucide-react"
+import { ArrowLeft, Save, Upload, X, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import type { ModuleSpec, InverterSpec } from "@/lib/supabase"
 
 // Lista das principais distribuidoras de energia elétrica do Brasil
 const distribuidoras = [
@@ -58,13 +59,6 @@ interface FormData {
   name: string
   location: string
   distribuidora: string
-  projetista: string
-  moduleQuantity: string
-  moduleBrand: string
-  moduleModel: string
-  inverterQuantity: string
-  inverterBrand: string
-  inverterModel: string
   power: string
   tipoPadrao: string
   capacidadeDisjuntor: string
@@ -85,17 +79,14 @@ export default function CadastrarProjeto() {
     name: "",
     location: "",
     distribuidora: "",
-    projetista: "",
-    moduleQuantity: "",
-    moduleBrand: "",
-    moduleModel: "",
-    inverterQuantity: "",
-    inverterBrand: "",
-    inverterModel: "",
     power: "",
     tipoPadrao: "",
     capacidadeDisjuntor: "",
   })
+
+  const [modules, setModules] = useState<ModuleSpec[]>([{ id: "1", quantity: 0, brand: "", model: "" }])
+
+  const [inverters, setInverters] = useState<InverterSpec[]>([{ id: "1", quantity: 0, brand: "", model: "" }])
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -106,6 +97,38 @@ export default function CadastrarProjeto() {
       ...prev,
       [field]: value,
     }))
+  }
+
+  // Funções para gerenciar módulos
+  const addModule = () => {
+    const newId = Date.now().toString()
+    setModules([...modules, { id: newId, quantity: 0, brand: "", model: "" }])
+  }
+
+  const removeModule = (id: string) => {
+    if (modules.length > 1) {
+      setModules(modules.filter((m) => m.id !== id))
+    }
+  }
+
+  const updateModule = (id: string, field: keyof ModuleSpec, value: string | number) => {
+    setModules(modules.map((m) => (m.id === id ? { ...m, [field]: value } : m)))
+  }
+
+  // Funções para gerenciar inversores
+  const addInverter = () => {
+    const newId = Date.now().toString()
+    setInverters([...inverters, { id: newId, quantity: 0, brand: "", model: "" }])
+  }
+
+  const removeInverter = (id: string) => {
+    if (inverters.length > 1) {
+      setInverters(inverters.filter((i) => i.id !== id))
+    }
+  }
+
+  const updateInverter = (id: string, field: keyof InverterSpec, value: string | number) => {
+    setInverters(inverters.map((i) => (i.id === id ? { ...i, [field]: value } : i)))
   }
 
   const formatFileSize = (bytes: number) => {
@@ -279,27 +302,35 @@ export default function CadastrarProjeto() {
 
     try {
       // Validação básica
-      const requiredFields = [
-        "name",
-        "location",
-        "distribuidora",
-        "projetista",
-        "moduleQuantity",
-        "moduleBrand",
-        "moduleModel",
-        "inverterQuantity",
-        "inverterBrand",
-        "inverterModel",
-        "power",
-        "tipoPadrao",
-        "capacidadeDisjuntor",
-      ]
+      const requiredFields = ["name", "location", "distribuidora", "power", "tipoPadrao", "capacidadeDisjuntor"]
       const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData])
 
       if (missingFields.length > 0) {
         toast({
           title: "Campos obrigatórios",
           description: "Por favor, preencha todos os campos obrigatórios.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validar módulos
+      const validModules = modules.filter((m) => m.quantity > 0 && m.brand && m.model)
+      if (validModules.length === 0) {
+        toast({
+          title: "Módulos obrigatórios",
+          description: "Adicione pelo menos um módulo com todos os campos preenchidos.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validar inversores
+      const validInverters = inverters.filter((i) => i.quantity > 0 && i.brand && i.model)
+      if (validInverters.length === 0) {
+        toast({
+          title: "Inversores obrigatórios",
+          description: "Adicione pelo menos um inversor com todos os campos preenchidos.",
           variant: "destructive",
         })
         return
@@ -319,6 +350,8 @@ export default function CadastrarProjeto() {
       // Criar objeto do projeto
       const projectData = {
         ...formData,
+        modules: validModules,
+        inverters: validInverters,
         files: uploadedFiles.filter((f) => !f.uploading),
       }
 
@@ -342,7 +375,7 @@ export default function CadastrarProjeto() {
 
       toast({
         title: "Projeto cadastrado com sucesso!",
-        description: `Projeto "${formData.name}" foi salvo no banco de dados com ${uploadedFiles.length} arquivo(s).`,
+        description: `Projeto "${formData.name}" foi salvo com ${validModules.length} tipo(s) de módulo e ${validInverters.length} tipo(s) de inversor.`,
       })
 
       // Aguardar um pouco para mostrar o toast antes de limpar
@@ -353,17 +386,12 @@ export default function CadastrarProjeto() {
         name: "",
         location: "",
         distribuidora: "",
-        projetista: "",
-        moduleQuantity: "",
-        moduleBrand: "",
-        moduleModel: "",
-        inverterQuantity: "",
-        inverterBrand: "",
-        inverterModel: "",
         power: "",
         tipoPadrao: "",
         capacidadeDisjuntor: "",
       })
+      setModules([{ id: "1", quantity: 0, brand: "", model: "" }])
+      setInverters([{ id: "1", quantity: 0, brand: "", model: "" }])
       setUploadedFiles([])
 
       toast({
@@ -449,16 +477,6 @@ export default function CadastrarProjeto() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="projetista">Projetista *</Label>
-                    <Input
-                      id="projetista"
-                      placeholder="Nome do projetista"
-                      value={formData.projetista}
-                      onChange={(e) => handleInputChange("projetista", e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
                     <Label htmlFor="power">Potência Total *</Label>
                     <Input
                       id="power"
@@ -468,26 +486,25 @@ export default function CadastrarProjeto() {
                       required
                     />
                   </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="distribuidora">Distribuidora *</Label>
-                  <Select
-                    value={formData.distribuidora}
-                    onValueChange={(value) => handleInputChange("distribuidora", value)}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a distribuidora" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {distribuidoras.map((dist) => (
-                        <SelectItem key={dist} value={dist}>
-                          {dist}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <Label htmlFor="distribuidora">Distribuidora *</Label>
+                    <Select
+                      value={formData.distribuidora}
+                      onValueChange={(value) => handleInputChange("distribuidora", value)}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a distribuidora" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {distribuidoras.map((dist) => (
+                          <SelectItem key={dist} value={dist}>
+                            {dist}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -537,86 +554,134 @@ export default function CadastrarProjeto() {
             {/* Módulos Fotovoltaicos */}
             <Card>
               <CardHeader>
-                <CardTitle>Módulos Fotovoltaicos</CardTitle>
-                <CardDescription>Especificações dos módulos solares</CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Módulos Fotovoltaicos</CardTitle>
+                    <CardDescription>Adicione um ou mais tipos de módulos solares</CardDescription>
+                  </div>
+                  <Button type="button" onClick={addModule} variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Módulo
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="moduleQuantity">Quantidade *</Label>
-                    <Input
-                      id="moduleQuantity"
-                      type="number"
-                      placeholder="Ex: 20"
-                      value={formData.moduleQuantity}
-                      onChange={(e) => handleInputChange("moduleQuantity", e.target.value)}
-                      required
-                    />
+                {modules.map((module, index) => (
+                  <div key={module.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium">Módulo {index + 1}</h4>
+                      {modules.length > 1 && (
+                        <Button
+                          type="button"
+                          onClick={() => removeModule(module.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Quantidade *</Label>
+                        <Input
+                          type="number"
+                          placeholder="Ex: 20"
+                          value={module.quantity || ""}
+                          onChange={(e) => updateModule(module.id, "quantity", Number.parseInt(e.target.value) || 0)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Marca *</Label>
+                        <Input
+                          placeholder="Ex: Canadian Solar"
+                          value={module.brand}
+                          onChange={(e) => updateModule(module.id, "brand", e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Modelo *</Label>
+                        <Input
+                          placeholder="Ex: CS3W-400P"
+                          value={module.model}
+                          onChange={(e) => updateModule(module.id, "model", e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="moduleBrand">Marca *</Label>
-                    <Input
-                      id="moduleBrand"
-                      placeholder="Ex: Canadian Solar"
-                      value={formData.moduleBrand}
-                      onChange={(e) => handleInputChange("moduleBrand", e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="moduleModel">Modelo *</Label>
-                    <Input
-                      id="moduleModel"
-                      placeholder="Ex: CS3W-400P"
-                      value={formData.moduleModel}
-                      onChange={(e) => handleInputChange("moduleModel", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
 
             {/* Inversores */}
             <Card>
               <CardHeader>
-                <CardTitle>Inversores</CardTitle>
-                <CardDescription>Especificações dos inversores ou microinversores</CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Inversores</CardTitle>
+                    <CardDescription>Adicione um ou mais tipos de inversores ou microinversores</CardDescription>
+                  </div>
+                  <Button type="button" onClick={addInverter} variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Inversor
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="inverterQuantity">Quantidade *</Label>
-                    <Input
-                      id="inverterQuantity"
-                      type="number"
-                      placeholder="Ex: 1"
-                      value={formData.inverterQuantity}
-                      onChange={(e) => handleInputChange("inverterQuantity", e.target.value)}
-                      required
-                    />
+                {inverters.map((inverter, index) => (
+                  <div key={inverter.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium">Inversor {index + 1}</h4>
+                      {inverters.length > 1 && (
+                        <Button
+                          type="button"
+                          onClick={() => removeInverter(inverter.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Quantidade *</Label>
+                        <Input
+                          type="number"
+                          placeholder="Ex: 1"
+                          value={inverter.quantity || ""}
+                          onChange={(e) =>
+                            updateInverter(inverter.id, "quantity", Number.parseInt(e.target.value) || 0)
+                          }
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Marca *</Label>
+                        <Input
+                          placeholder="Ex: Fronius"
+                          value={inverter.brand}
+                          onChange={(e) => updateInverter(inverter.id, "brand", e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Modelo *</Label>
+                        <Input
+                          placeholder="Ex: Primo 8.2-1"
+                          value={inverter.model}
+                          onChange={(e) => updateInverter(inverter.id, "model", e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="inverterBrand">Marca *</Label>
-                    <Input
-                      id="inverterBrand"
-                      placeholder="Ex: Fronius"
-                      value={formData.inverterBrand}
-                      onChange={(e) => handleInputChange("inverterBrand", e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="inverterModel">Modelo *</Label>
-                    <Input
-                      id="inverterModel"
-                      placeholder="Ex: Primo 8.2-1"
-                      value={formData.inverterModel}
-                      onChange={(e) => handleInputChange("inverterModel", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
 
